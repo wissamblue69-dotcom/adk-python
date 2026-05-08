@@ -1,0 +1,97 @@
+name: 🧠 Neural Scanner - Repository Mesh Builder
+# سكربت بناء الشبكة العصبية الدلالية لمستودعاتك
+
+on:
+  schedule:
+    # تشغيل يومي في الساعة 2 صباحاً UTC
+    - cron: '0 2 * * *'
+  
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - '.github/workflows/neural_scanner.yml'
+      - 'scripts/neural_mesh_builder.py'
+  
+  workflow_dispatch:
+    # تشغيل يدوي من واجهة GitHub
+
+permissions:
+  contents: write
+  repositories: read
+
+jobs:
+  scan-neural-mesh:
+    runs-on: ubuntu-latest
+    name: Build Neural Mesh Network
+    
+    steps:
+      # 1️⃣ Checkout the repository
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2️⃣ Setup Python Environment
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # 3️⃣ Install Dependencies
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pyyaml networkx
+
+      # 4️⃣ Fetch Repository Data Using GitHub API
+      - name: 🔍 Scan Your Repository Network
+        id: scanner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: python scripts/neural_mesh_builder.py
+
+      # 5️⃣ Commit and Push Neural Mesh JSON
+      - name: 💾 Commit Neural Mesh Updates
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --local user.email "neural-scanner@github.local"
+          git config --local user.name "🧠 Neural Scanner Bot"
+          
+          # Check if urbon_neural_mesh.json changed
+          if git diff --quiet urbon_neural_mesh.json; then
+            echo "✅ Neural mesh is up to date - no changes"
+          else
+            echo "🔄 Neural mesh updated - committing changes"
+            git add urbon_neural_mesh.json
+            git commit -m "🧠 Neural Mesh Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            git push origin main
+          fi
+
+      # 6️⃣ Generate Summary Report
+      - name: 📊 Generate Neural Analysis Report
+        run: |
+          echo "## 🧠 Neural Scanner Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Date:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Count repositories
+          REPO_COUNT=$(python -c "import json; f=open('urbon_neural_mesh.json'); d=json.load(f); print(len(d))")
+          echo "**Repositories Scanned:** $REPO_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Language distribution
+          echo "### 📈 Language Distribution" >> $GITHUB_STEP_SUMMARY
+          python scripts/generate_report.py >> $GITHUB_STEP_SUMMARY
+
+      # 7️⃣ Notify on Failure
+      - name: ⚠️ Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Neural Scanner failed!"
+          echo "Check logs at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
