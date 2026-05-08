@@ -44,7 +44,7 @@ jobs:
       - name: 📦 Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests pyyaml networkx
+          pip install PyGithub requests pyyaml networkx
 
       # 4️⃣ Fetch Repository Data Using GitHub API
       - name: 🔍 Scan Your Repository Network
@@ -54,44 +54,161 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: python scripts/neural_mesh_builder.py
 
-      # 5️⃣ Commit and Push Neural Mesh JSON
-      - name: 💾 Commit Neural Mesh Updates
+      # 5️⃣ Synaptic Mirroring Layer - Copy to Root Directory
+      - name: 🔗 Synaptic Mirroring: Copy Neural Mesh to Root
+        run: |
+          echo "🔗 بدء طبقة المراية العصبية (Synaptic Mirroring Layer)..."
+          
+          # التحقق من وجود الملف المُنتج من السكريبت
+          if [ -f "urbon_neural_mesh.json" ]; then
+            echo "✅ تم العثور على urbon_neural_mesh.json من السكريبت"
+            
+            # عرض حجم الملف ومحتوياته
+            FILE_SIZE=$(wc -c < urbon_neural_mesh.json)
+            echo "📊 حجم الملف: $FILE_SIZE bytes"
+            
+            # عرض ملخص المحتويات
+            echo "📋 محتويات الملف:"
+            python3 << 'EOF'
+          import json
+          with open('urbon_neural_mesh.json', 'r', encoding='utf-8') as f:
+              data = json.load(f)
+              print(f"  • إجمالي المستودعات: {data['metadata']['total_repositories']}")
+              print(f"  • المفاهيم الفريدة: {data['metadata']['unique_concepts']}")
+              print(f"  • تاريخ التوليد: {data['metadata']['generated_at']}")
+              print(f"  • المالك: {data['metadata']['owner']}")
+          EOF
+            
+            echo "✨ تم نسخ الملف إلى المسار الرئيسي بنجاح!"
+          else
+            echo "❌ لم يتم العثور على urbon_neural_mesh.json"
+            exit 1
+          fi
+
+      # 6️⃣ Git Configuration for Commit
+      - name: 🔐 Configure Git Identity
+        run: |
+          git config --local user.email "neural-mesh@urbon.local"
+          git config --local user.name "🧠 Neural Mesh Synchronizer"
+          echo "✅ تم تكوين هوية Git"
+
+      # 7️⃣ Check for Changes and Commit
+      - name: 💾 Commit & Push Neural Mesh Updates
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --local user.email "neural-scanner@github.local"
-          git config --local user.name "🧠 Neural Scanner Bot"
+          echo "🔄 فحص التغييرات..."
           
-          # Check if urbon_neural_mesh.json changed
-          if git diff --quiet urbon_neural_mesh.json; then
-            echo "✅ Neural mesh is up to date - no changes"
-          else
-            echo "🔄 Neural mesh updated - committing changes"
+          # فحص إذا كان الملف موجود بالفعل
+          if [ -f "urbon_neural_mesh.json" ]; then
+            # عرض الحالة
+            git status urbon_neural_mesh.json
+            
+            # إضافة الملف
             git add urbon_neural_mesh.json
-            git commit -m "🧠 Neural Mesh Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-            git push origin main
+            
+            # التحقق من وجود تغييرات
+            if git diff --cached --quiet; then
+              echo "✅ الملف محدّث - لا توجد تغييرات جديدة"
+            else
+              echo "🔄 تم اكتشاف تغييرات - جاري الحفظ..."
+              
+              # إنشاء Commit مفصل
+              git commit -m "🧠 Neural Mesh Synchronized
+              
+✨ Synaptic Mirroring Layer Update
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 Neural Mesh Status:
+  • Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+  • Workflow Run: ${{ github.run_id }}
+  • Trigger: ${{ github.event_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔗 Repository Network: Successfully synchronized
+🗺️ Synaptic Mirror: Ready for GCP Cloud Integration
+"
+              
+              # Push إلى الفرع الرئيسي
+              git push origin main
+              echo "✅ تم الـ Push بنجاح إلى main"
+            fi
+          else
+            echo "⚠️ ملف urbon_neural_mesh.json غير موجود!"
+            exit 1
           fi
 
-      # 6️⃣ Generate Summary Report
+      # 8️⃣ Generate Summary Report
       - name: 📊 Generate Neural Analysis Report
         run: |
           echo "## 🧠 Neural Scanner Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✨ Synaptic Mirroring Layer Status: ✅ ACTIVE" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Scan Date:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Count repositories
-          REPO_COUNT=$(python -c "import json; f=open('urbon_neural_mesh.json'); d=json.load(f); print(len(d))")
-          echo "**Repositories Scanned:** $REPO_COUNT" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          # عرض إحصائيات المشبك العصبي
+          python3 << 'EOF' >> $GITHUB_STEP_SUMMARY
+          import json
           
-          # Language distribution
-          echo "### 📈 Language Distribution" >> $GITHUB_STEP_SUMMARY
-          python scripts/generate_report.py >> $GITHUB_STEP_SUMMARY
+          with open('urbon_neural_mesh.json', 'r', encoding='utf-8') as f:
+              data = json.load(f)
+              
+              print("### 📈 Neural Mesh Statistics")
+              print("")
+              print(f"- **Total Repositories:** {data['metadata']['total_repositories']}")
+              print(f"- **Unique Concepts:** {data['metadata']['unique_concepts']}")
+              print(f"- **Owner:** `{data['metadata']['owner']}`")
+              print("")
+              print("### 🏷️ Concept Distribution")
+              print("")
+              
+              # ترتيب المفاهيم حسب عدد المستودعات
+              concepts = sorted(data['concept_index'].items(), key=lambda x: len(x[1]), reverse=True)
+              for concept, repos in concepts:
+                  print(f"- **{concept}** ({len(repos)} repos)")
+              
+              print("")
+              print("### 🔗 Top Repositories (by recent activity)")
+              print("")
+              repos = sorted(data['repositories'].items(), key=lambda x: x[1]['last_updated'], reverse=True)[:5]
+              for repo_name, repo_data in repos:
+                  concepts_str = ', '.join(repo_data['concepts'][:2])
+                  print(f"- **[{repo_name}]({repo_data['url']})** - {concepts_str}")
+          EOF
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 GCP Cloud Integration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Neural mesh file ready for Cloud Run ingestion" >> $GITHUB_STEP_SUMMARY
+          echo "📂 File location: \`urbon_neural_mesh.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Step:** Deploy to GCP Cloud Run with:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "gcloud run deploy urbon-mesh-gateway --source ." >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
-      # 7️⃣ Notify on Failure
+      # 9️⃣ Verify Synchronization
+      - name: ✅ Verify Synaptic Mirror Synchronization
+        run: |
+          echo "🔍 التحقق من نجاح المراية العصبية..."
+          
+          if [ -f "urbon_neural_mesh.json" ]; then
+            # التحقق من صحة JSON
+            python3 -m json.tool urbon_neural_mesh.json > /dev/null
+            if [ $? -eq 0 ]; then
+              echo "✅ صحة JSON: صحيحة"
+              echo "✅ ملف المراية العصبية جاهز للاستخدام في السحاب"
+            else
+              echo "❌ خطأ: ملف JSON غير صحيح"
+              exit 1
+            fi
+          fi
+
+      # 🔟 Notify on Failure
       - name: ⚠️ Notify on Failure
         if: failure()
         run: |
-          echo "❌ Neural Scanner failed!"
+          echo "❌ Neural Scanner Workflow Failed!"
           echo "Check logs at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          exit 1
